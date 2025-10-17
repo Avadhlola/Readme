@@ -1,74 +1,109 @@
-# Readmeimport pygame
+import pygame
 import random
 
-# Initialize
+# Initialize pygame
 pygame.init()
-WIDTH, HEIGHT = 800, 400
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-clock = pygame.time.Clock()
-font = pygame.font.SysFont(None, 40)
+
+# Screen dimensions
+WIDTH = 800
+HEIGHT = 300
+SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Dinosaur Game")
 
 # Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
-# Player
-player = pygame.Rect(100, 300, 50, 50)
-gravity = 0
-jumping = False
+# Clock and font
+clock = pygame.time.Clock()
+font = pygame.font.SysFont(None, 36)
 
-# Obstacles
-obstacles = []
-spawn_timer = 0
+# Dinosaur class
+class Dinosaur:
+    def __init__(self):
+        self.image = pygame.Surface((40, 40))
+        self.image.fill((0, 200, 0))
+        self.rect = self.image.get_rect()
+        self.rect.x = 50
+        self.rect.y = HEIGHT - 90
+        self.jump_speed = 0
+        self.is_jumping = False
 
-# Score
-score = 0
+    def update(self):
+        if self.is_jumping:
+            self.jump_speed += 1
+            self.rect.y += self.jump_speed
+            if self.rect.y >= HEIGHT - 90:
+                self.rect.y = HEIGHT - 90
+                self.is_jumping = False
+                self.jump_speed = 0
 
-def draw():
-    screen.fill(WHITE)
-    pygame.draw.rect(screen, BLACK, player)
-    for obs in obstacles:
-        pygame.draw.rect(screen, BLACK, obs)
-    score_text = font.render(f"Score: {score}", True, BLACK)
-    screen.blit(score_text, (10, 10))
-    pygame.display.flip()
+    def jump(self):
+        if not self.is_jumping:
+            self.is_jumping = True
+            self.jump_speed = -15
 
-# Game loop
-running = True
-while running:
-    clock.tick(60)
-    score += 1
+    def draw(self):
+        SCREEN.blit(self.image, self.rect)
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN and not jumping:
-            gravity = -15
-            jumping = True
+# Obstacle class
+class Obstacle:
+    def __init__(self):
+        self.image = pygame.Surface((20, 40))
+        self.image.fill((200, 0, 0))
+        self.rect = self.image.get_rect()
+        self.rect.x = WIDTH
+        self.rect.y = HEIGHT - 90
 
-    # Player physics
-    gravity += 1
-    player.y += gravity
-    if player.y >= 300:
-        player.y = 300
-        jumping = False
+    def update(self):
+        self.rect.x -= 10
 
-    # Spawn obstacles
-    spawn_timer += 1
-    if spawn_timer > 90:
-        obstacles.append(pygame.Rect(WIDTH, 300, 30, 50))
-        spawn_timer = 0
+    def draw(self):
+        SCREEN.blit(self.image, self.rect)
 
-    # Move obstacles
-    for obs in obstacles:
-        obs.x -= 5
-    obstacles = [obs for obs in obstacles if obs.x > -30]
+# Main game loop
+def game_loop():
+    dino = Dinosaur()
+    obstacles = []
+    score = 0
+    game_over = False
+    spawn_event = pygame.USEREVENT + 1
+    pygame.time.set_timer(spawn_event, 1500)
 
-    # Collision
-    for obs in obstacles:
-        if player.colliderect(obs):
-            running = False
+    while not game_over:
+        SCREEN.fill(WHITE)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                game_over = True
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    dino.jump()
+            if event.type == spawn_event:
+                obstacles.append(Obstacle())
 
-    draw()
+        # Update and draw dino
+        dino.update()
+        dino.draw()
 
-pygame.quit()
+        # Update and draw obstacles
+        for obstacle in obstacles[:]:
+            obstacle.update()
+            obstacle.draw()
+            if obstacle.rect.right < 0:
+                obstacles.remove(obstacle)
+                score += 1
+            if dino.rect.colliderect(obstacle.rect):
+                game_over = True
+
+        # Display score
+        score_text = font.render(f"Score: {score}", True, BLACK)
+        SCREEN.blit(score_text, (10, 10))
+
+        pygame.display.flip()
+        clock.tick(30)
+
+    # Game over screen
+    SCREEN.fill(WHITE)
+    msg = font.render("Game Over! Press any key to exit", True, BLACK)
+    SCREEN.blit(msg, (WIDTH//2
+
